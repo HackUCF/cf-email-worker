@@ -61,19 +61,69 @@ export default {
         },
       );
     }
+    // First, fix the sendGridCheckEmail function
+    async function sendGridCheckEmail(email) {
+      try {
+        const response = await fetch(
+          "https://api.sendgrid.com/v3/validations/email",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${env.SENDGRID_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: email,
+              source: "Contact Form",
+            }),
+          },
+        );
+        console.log(await response.json());
+        if (!response.ok) {
+          console.error(
+            "SendGrid email validation failed:",
+            response.statusText,
+          );
+          return false;
+        }
+
+        const data = await response.json();
+        return data.result && data.result.verdict === "Valid";
+      } catch (error) {
+        console.error("Error checking email:", error);
+        return false;
+      }
+    }
 
     // Simple email validation
     function isValidEmail(email) {
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     }
 
+    // Then, modify the email validation check in the main code to be async
     if (!isValidEmail(email)) {
-      return new Response(JSON.stringify({ error: "Invalid email address" }), {
+      return new Response(JSON.stringify({ error: "Invalid email format" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // Add additional SendGrid validation
+    try {
+      const isEmailValid = await sendGridCheckEmail(email);
+      if (!isEmailValid) {
+        return new Response(
+          JSON.stringify({ error: "Invalid email address" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+    } catch (error) {
+      console.error("Email validation error:", error);
+      // Fall back to basic validation if SendGrid check fails
+    }
     // Sanitize inputs to prevent injection attacks
     function escapeHtml(unsafe) {
       return String(unsafe)
@@ -108,7 +158,7 @@ export default {
     const sendgridBody = {
       personalizations: [
         {
-          to: [{ email: "ops@hackucf.org", name: "HackUCF Ops" }],
+          to: [{ email: "jstyles@hackucf.org", name: "HackUCF Ops" }],
         },
       ],
       from: {
@@ -192,6 +242,7 @@ async function validateTurnstileToken(token, request, env) {
       return { success: true };
     } else {
       console.error("Turnstile validation failed:", outcome);
+      console.log(outcome);
       return {
         success: false,
         error: outcome["error-codes"] || "Unknown validation error",
@@ -203,40 +254,5 @@ async function validateTurnstileToken(token, request, env) {
       success: false,
       error: "Internal validation error",
     };
-  }
-}
-
-async function sendGridCheckEmail(email, apikey) {
-  body = {
-    email: email,
-    source: "Contact Form",
-  };
-  const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.SENDGRID_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    console.error("SendGrid email failed:", response.statusText);
-    return {
-      success: false,
-      error: "Email sending failed",
-    };
-  }
-
-  try {
-    const data = await response.json();
-    // Check if email is valid
-    if (data.result && data.result.verdict === "Valid") {
-      return true;
-    }
-    return false;
-  } catch (error) {
-    console.error("Error parsing response:", error);
-    return false;
   }
 }
