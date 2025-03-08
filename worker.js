@@ -109,11 +109,11 @@ export default {
     const sendgridBody = {
       personalizations: [
         {
-          to: [{ email: "jstyles@hackucf.org", name: "HackUCF Ops" }],
+          to: [{ email: "ops@hackucf.org", name: "HackUCF Ops" }],
         },
       ],
       from: {
-        email: "noreply@holyscriptors.club",
+        email: "noreply@hackucf.org",
         name: "HackUCF Contact Form",
       },
       subject: "New Contact Us Message from HackUCF Website",
