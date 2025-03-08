@@ -112,6 +112,10 @@ export default {
           to: [{ email: "ops@hackucf.org", name: "HackUCF Ops" }],
         },
       ],
+      reply_to: {
+        email: email,
+        name: firstName + " " + lastName,
+      },
       from: {
         email: "noreply@hackucf.org",
         name: "HackUCF Contact Form",
