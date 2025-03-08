@@ -1,2 +1,3 @@
-name = "my-worker-dev"
+name = "cf-email-worker"
 compatibility_date = "2025-03-08"
+main = "worker.js"
